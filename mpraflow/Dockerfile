@@ -34,4 +34,3 @@ WORKDIR /MPRAsnakeflow
 
 # Clone the git repo
 RUN git clone https://github.com/kircherlab/MPRAsnakeflow.git .
-
