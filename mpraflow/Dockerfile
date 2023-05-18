@@ -1,37 +1,37 @@
-# Use a base image that includes Python 3.6
-FROM python:3.6-slim
+# Use miniconda3 as base image
+FROM continuumio/miniconda3:23.3.1-0
 
-# Install necessary system tools
-RUN apt-get update && apt-get install -y \
-    curl \
-    bzip2 \
-    git \
-    libgomp1 \
-    procps \
-    && rm -rf /var/lib/apt/lists/*
+# Metadata
+LABEL base.image="miniconda3"
+LABEL version="1"
+LABEL software="MPRAsnakeflow"
+LABEL software.version="1.0.0"
+LABEL description="This pipeline processes sequencing data from Massively Parallel Reporter Assays (MPRA) to create count tables for candidate sequences tested in the experiment."
+LABEL website="https://github.com/kircherlab/MPRAsnakeflow"
+LABEL documentation="https://mprasnakeflow.readthedocs.io"
+LABEL license="https://github.com/kircherlab/MPRAsnakeflow/blob/main/LICENSE"
+LABEL tags="Genomics"
+LABEL MAINTAINER Max Schubach <max.schubach@bihealth.de>
 
-# Install conda
-RUN curl -Lo ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    && chmod +x ~/miniconda.sh \
-    && ~/miniconda.sh -b -p ~/miniconda \
-    && rm ~/miniconda.sh
-ENV PATH=~/miniconda/bin:${PATH}
+#update base
+RUN apt-get update && apt-get install -y zlib1g-dev zlib1g libbz2-dev liblzma-dev wget libncurses5-dev
 
-# Install Nextflow
-RUN curl -s https://get.nextflow.io | bash \
-    && mv nextflow /usr/local/bin/
+# Put conda in path so we can use conda activate
+ENV PATH=$CONDA_DIR/bin:$PATH
 
-# Clone MPRAflow repository
-RUN git clone https://github.com/shendurelab/MPRAflow.git
+# Update conda to latest version.
+RUN conda update -n base -c defaults conda
+RUN conda install -n base -c conda-forge mamba
 
-# Set the working directory to the cloned repository
-WORKDIR MPRAflow
+# Install snakemake
+#RUN conda install -c bioconda snakemake
+RUN mamba install -c conda-forge -c bioconda snakemake
 
-# Create conda environment using the yml file in the repository
-RUN conda env create -f environment.yml
+RUN mamba install -c conda-forge -c bioconda sra-tools
 
-# Make RUN commands use the new environment
-SHELL ["conda", "run", "-n", "MPRAflow", "/bin/bash", "-c"]
+# Create a directory for the workflow
+WORKDIR /MPRAsnakeflow
 
-# Display the help message for the count.nf pipeline to verify the installation
-RUN nextflow run count.nf --help
+# Clone the git repo
+RUN git clone https://github.com/kircherlab/MPRAsnakeflow.git .
+
