@@ -1,35 +1,33 @@
-ARG UBUNTU_VERSION=18.04
-ARG CUDA_VERSION=10.2
-FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu${UBUNTU_VERSION}
-# An ARG declared before a FROM is outside of a build stage,
-# so it can’t be used in any instruction after a FROM
+# Use an NVIDIA CUDA base image that includes CUDA 11.8 and is compatible with Ubuntu 20.04
+FROM nvidia/cuda:11.8.0-base-ubuntu20.04
 
-ARG PY_VER=3.8.11
-#ARG TF_VER=2.5.0
-ARG CUDA_VERSION
+# Set the working directory
+WORKDIR /usr/src/app
 
-# Install ubuntu packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        git \
+# Install Python 3.8 and essential packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3.8 python3.8-distutils python3.8-venv \
         curl \
-        ca-certificates \
-        sudo \
-        locales \
-        openssh-server \
-        vim && \
-    # Remove the effect of `apt-get update`
-    rm -rf /var/lib/apt/lists/* && \
-    # Make the "en_US.UTF-8" locale
-    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-ENV LANG en_US.utf8
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install miniconda (python)
-# Referenced PyTorch's Dockerfile:
-#   https://github.com/pytorch/pytorch/blob/master/docker/pytorch/Dockerfile
+# Install pip for Python 3.8
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.8
 
-ARG UBUNTU_VER=18.04
-ARG CONDA_VER=latest
-ARG OS_TYPE=x86_64
-ARG PY_VER=3.8.11
+# Remove existing python links if they exist and create new ones
+RUN if [ -f /usr/bin/python ]; then rm /usr/bin/python; fi && \
+    if [ -f /usr/bin/python3 ]; then rm /usr/bin/python3; fi && \
+    ln -s /usr/bin/python3.8 /usr/bin/python3 && \
+    ln -s /usr/bin/python3.8 /usr/bin/python
+
+
+# Install compatible versions of torch, pandas, scipy, numpy, tqdm
+# These versions are selected based on compatibility with Python 3.8 and PyTorch 2.1.2
+RUN pip install torch pandas scipy numpy tqdm
+
+# Optional: Clean up pip cache to save space
+RUN rm -rf /root/.cache/pip/*
