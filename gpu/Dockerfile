@@ -1,5 +1,5 @@
 # Use an NVIDIA CUDA base image that includes CUDA 11.8 and is compatible with Ubuntu 20.04
-FROM nvidia/cuda:11.4.3-devel-ubuntu20.04
+FROM nvidia/cuda:11.8.0-devel-ubuntu20.04
 # Set the working directory
 WORKDIR /usr/src/app
 # Install Python 3.8 and essential packages
@@ -24,6 +24,7 @@ RUN if [ -f /usr/bin/python ]; then rm /usr/bin/python; fi && \
 
 # Install compatible versions of torch, pandas, scipy, numpy, tqdm
 # These versions are selected based on compatibility with Python 3.8 and PyTorch 2.1.2
-RUN pip install torch==2.1.2 pandas scipy numpy tqdm
+RUN pip install torch --index-url https://download.pytorch.org/whl/cu118
+RUN pip install pandas scipy numpy tqdm
 # Optional: Clean up pip cache to save space
 RUN rm -rf /root/.cache/pip/*
